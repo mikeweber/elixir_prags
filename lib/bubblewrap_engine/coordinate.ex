@@ -5,6 +5,8 @@ defmodule BubblewrapEngine.Coordinate do
 
   @board_range 0..9
 
+  def board_range, do: @board_range
+
   def new(row, col) when row in(@board_range) and col in(@board_range) do
     {:ok, %Coordinate{ row: row, col: col }}
   end
