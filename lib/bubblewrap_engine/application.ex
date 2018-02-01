@@ -10,6 +10,8 @@ defmodule BubblewrapEngine.Application do
     children = [
       # Starts a worker by calling: BubblewrapEngine.Worker.start_link(arg)
       # {BubblewrapEngine.Worker, arg},
+      {Registry, keys: :unique, name: Registry.Game},
+      BubblewrapEngine.GameSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
