@@ -28,7 +28,7 @@ defmodule BubblewrapEngine.Rules do
     end
   end
 
-  def check(%Rules{ state: :playing} = rules, :keep_playing) do
+  def check(%Rules{ state: :playing } = rules, :keep_playing) do
     {:ok, rules}
   end
 

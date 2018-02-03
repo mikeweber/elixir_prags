@@ -56,7 +56,7 @@ defmodule BubblewrapEngine.Game do
     with {:ok, rules}              <- Rules.check(rules, {:make_move, player}),
          {:ok, coordinate}         <- Coordinate.new(row, col),
          {:ok, board, game_status} <- Board.pop(board, player, coordinate),
-         {:ok, rules}              <- Rules.check(rules, {game_status})
+         {:ok, rules}              <- Rules.check(rules, game_status)
     do
       state
       |> update_board(board)
