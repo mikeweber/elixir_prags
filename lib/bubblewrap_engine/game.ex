@@ -5,17 +5,23 @@ defmodule BubblewrapEngine.Game do
   @timeout 3600 * 24 * 1000
 
   def start_link(name, max_players) when is_binary(name) do
-    GenServer.start_link(__MODULE__, max_players, name: via_tuple(name))
+    GenServer.start_link(__MODULE__, {name, max_players}, name: via_tuple(name))
   end
 
   def via_tuple(name) do
     {:via, Registry, {Registry.Game, name}}
   end
 
-  def init(max_players) do
-    {:ok, board} = Board.new(max_players)
-    {:ok, %{ board: board, rules: Rules.new(max_players) }, @timeout}
+  def init({game_name, max_players}) do
+    send(self(), {:set_state, game_name, max_players})
+    {:ok, fresh_state(game_name, max_players)}
   end
+
+  def terminate({:shutdown, :timeout}, %{ name: name }) do
+    clear_cache(name)
+    :ok
+  end
+  def terminate(_reason, _state), do: :ok
 
   # GenServer calls
   def add_player(game, name) when is_binary(name) do
@@ -74,6 +80,17 @@ defmodule BubblewrapEngine.Game do
     {:stop, {:shutdown, :timeout}, state}
   end
 
+  def handle_info({:set_state, name, max_players}, _state) do
+    state_data =
+      case :ets.lookup(:game_state, name) do
+        [] -> fresh_state(name, max_players)
+        [{_key, state}] -> state
+      end
+
+    capture_state(state_data)
+    {:noreply, state_data, @timeout}
+  end
+
   defp append_player(%{ board: board } = state, name) do
     with {:ok, board} <- Board.add_player(board, String.to_atom(name)) do
       %{ state | board: board }
@@ -91,12 +108,28 @@ defmodule BubblewrapEngine.Game do
 
   defp update_rules(state, rules), do: %{ state | rules: rules }
 
-  defp reply_success(state, reply), do: {:reply, reply, state, @timeout}
+  defp reply_success(state, reply) do
+    capture_state(state)
+    {:reply, reply, state, @timeout}
+  end
 
   defp reply_error(state, reason) do
     {:reply, {:error, reason}, state, @timeout}
   end
   defp reply_error(state) do
     {:reply, :error, state, @timeout}
+  end
+
+  defp fresh_state(game_name, max_players) do
+    {:ok, board} = Board.new(max_players)
+    %{ name: game_name, board: board, rules: Rules.new(max_players) }
+  end
+
+  defp capture_state(state) do
+    :ets.insert(:game_state, {state.name, state})
+  end
+
+  defp clear_cache(name) do
+    :ets.delete(:game_state, name)
   end
 end

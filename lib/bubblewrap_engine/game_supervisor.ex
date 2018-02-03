@@ -8,6 +8,7 @@ defmodule BubblewrapEngine.GameSupervisor do
   end
 
   def stop_game(name) do
+    clear_cache(name)
     Supervisor.terminate_child(__MODULE__, pid_from_name(name))
   end
 
@@ -21,7 +22,11 @@ defmodule BubblewrapEngine.GameSupervisor do
 
   defp pid_from_name(name) do
     name
-    |> Game.via_tuple()
-    |> GenServer.whereis()
+    |> Game.via_tuple
+    |> GenServer.whereis
+  end
+
+  defp clear_cache(name) do
+    :ets.delete(:game_state, name)
   end
 end
